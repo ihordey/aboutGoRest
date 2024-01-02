@@ -1,8 +1,11 @@
 package main
 
 import (
+	docs "about/go/rest/backend/server/docs"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	swaggerfiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"log"
 	"net/http"
 )
@@ -20,6 +23,12 @@ var albums = map[string]album{
 	"3": {ID: "3", Title: "Sarah Vaughan and Clifford Brown", Artist: "Sarah Vaughan", Price: 39.99},
 }
 
+// @Summary      Show albums
+// @Tags         Albums
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  []album
+// @Router       /albums [get]
 func getAlbums(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, albums)
 }
@@ -54,10 +63,20 @@ func deleteAlbumByID(c *gin.Context) {
 
 func main() {
 	router := gin.Default()
-	router.GET("/albums", getAlbums)
-	router.GET("/albums/:id", getAlbumByID)
-	router.POST("/albums", postAlbums)
-	router.DELETE("/albums/:id", deleteAlbumByID)
+	const routePrefix = "/api/v1"
+	docs.SwaggerInfo.BasePath = routePrefix
+	var rootGroup = router.Group(routePrefix)
+	{
+		albumsGroup := rootGroup.Group("/albums")
+		{
+			albumsGroup.GET("/", getAlbums)
+			albumsGroup.GET("/:id", getAlbumByID)
+			albumsGroup.POST("/", postAlbums)
+			albumsGroup.DELETE("/:id", deleteAlbumByID)
+		}
+
+	}
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 
 	err := router.Run()
 	if err != nil {
